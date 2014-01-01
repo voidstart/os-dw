@@ -18,11 +18,11 @@ start:          jmp loader          ; jump over OEM block
 ; Error Fix 2 - Removing the ugly TIMES directive -------------------------------------
 
 
-bpbOEM      db "My OS   "       ; This member must be exactally 8 bytes. It is just
-                ; the name of your OS :) Everything else remains the same.
-TIMES 0Bh-$+start DB 0          ; The OEM Parameter Block is exactally 3 bytes
+TIMES 03h-$+start DB 0          ; The OEM Parameter Block is exactally 3 bytes
                 ; from where we are loaded at. This fills in those
                 ; 3 bytes, along with 8 more. Why?
+bpbOEM      db "My OS   "       ; This member must be exactally 8 bytes. It is just
+                ; the name of your OS :) Everything else remains the same.
 
 bpbBytesPerSector:    DW 512
 bpbSectorsPerCluster:   DB 1
