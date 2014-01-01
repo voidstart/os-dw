@@ -9,19 +9,16 @@ bits  16              ; We are still in 16 bit Real Mode
 
 org   0x7c00            ; We are loaded by BIOS at 0x7C00
 
+;; 3 bytes here
 start:          jmp loader          ; jump over OEM block
+;; db 90h  ; one way of add no-op
+nop
 
 ;*************************************************;
 ; OEM Parameter block
 ;*************************************************;
 
-; Error Fix 2 - Removing the ugly TIMES directive -------------------------------------
-
-
-TIMES 03h-$+start DB 0          ; The OEM Parameter Block is exactally 3 bytes
-                ; from where we are loaded at. This fills in those
-                ; 3 bytes, along with 8 more. Why?
-bpbOEM      db "My OS   "       ; This member must be exactally 8 bytes. It is just
+bpbOEM      db "BSD  4.4"       ; This member must be exactally 8 bytes. It is just
                 ; the name of your OS :) Everything else remains the same.
 
 bpbBytesPerSector:    DW 512
@@ -43,22 +40,6 @@ bsSerialNumber:         DD 0xa0a1a2a3
 bsVolumeLabel:          DB "MOS FLOPPY "
 bsFileSystem:           DB "FAT12   "
 
-msg db  "Welcome to Wang Wei's DW-OS Operating System!", 0    ; the string to print
-
-;***************************************
-; Prints a string
-; DS=>SI: 0 terminated string
-;***************************************
-
-Print:
-      lodsb         ; load next byte from string from SI to AL
-      or      al, al    ; Does AL=0?
-      jz      PrintDone ; Yep, null terminator found-bail out
-      mov     ah, 0eh ; Nope-Print the character
-      int     10h
-      jmp     Print   ; Repeat until null terminator found
-PrintDone:
-      ret         ; we are done, so return
 
 ;*************************************************;
 ; Bootloader Entry Point
@@ -80,6 +61,23 @@ loader:
   cli             ; Clear all Interrupts
   hlt             ; halt the system
   
+msg db  "Welcome to Wang Wei's DW-OS Operating System!", 0    ; the string to print
+
+;***************************************
+; Prints a string
+; DS=>SI: 0 terminated string
+;***************************************
+
+Print:
+      lodsb         ; load next byte from string from SI to AL
+      or      al, al    ; Does AL=0?
+      jz      PrintDone ; Yep, null terminator found-bail out
+      mov     ah, 0eh ; Nope-Print the character
+      int     10h
+      jmp     Print   ; Repeat until null terminator found
+PrintDone:
+      ret         ; we are done, so return
+
 times 510 - ($-$$) db 0           ; We have to be 512 bytes. Clear the rest of the bytes with 0
 
 dw 0xAA55 
