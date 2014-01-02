@@ -112,7 +112,7 @@ ClusterLBA:
 ; Convert LBA to CHS
 ; AX=>LBA Address to convert
 ;
-; absolute sector = (logical sector / sectors per track) + 1
+; absolute sector = (logical sector % sectors per track) + 1
 ; absolute head   = (logical sector / sectors per track) MOD number of heads
 ; absolute track  = logical sector / (sectors per track * number of heads)
 ;
@@ -312,7 +312,8 @@ main:
      
      datasector  dw 0x0000
      cluster     dw 0x0000
-     ImageName   db "KRNLDR  SYS"
+     ;;ImageName   db "KRNLDR  SYS"
+     ImageName   db "STAGE2  SYS"
      msgLoading  db 0x0D, 0x0A, "Loading Boot Image ", 0x0D, 0x0A, 0x00
      msgCRLF     db 0x0D, 0x0A, 0x00
      msgProgress db ".", 0x00
