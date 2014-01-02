@@ -84,6 +84,7 @@ ReadSectors:
           pop     ax
           jnz     .SECTORLOOP                         ; attempt to read again
           int     0x18
+          ;; http://stackoverflow.com/questions/12754917/bootsector-fatal-int18-boot-error
      .SUCCESS:
           mov     si, msgProgress
           call    Print
