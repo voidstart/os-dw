@@ -153,7 +153,7 @@ main:
      
           mov     ax, 0x0000				; set the stack
           mov     ss, ax
-          mov     sp, 0xFFFF
+          mov     sp, 0xFFFF ; top of stack: ss:sp -> 7c00:ffff
           sti						; restore interrupts
 
      ;----------------------------------------------------
@@ -204,11 +204,16 @@ main:
           mov     si, ImageName                         ; image name to find
           push    di
      rep  cmpsb                                         ; test for entry match
+     ;; block compare, always cx bytes. repe - could be less cycles in some 
+     ;; cases, but could be longer due to overhead of checking between each compare
           pop     di
           je      LOAD_FAT
           pop     cx
           add     di, 0x0020                            ; queue next directory entry
+          ;; each entry is 32 bytes
           loop    .LOOP
+          ;; cx of bpbRootEntries exausted, nothing found (still not yet 
+          ;; jumped out )
           jmp     FAILURE
 
      ;----------------------------------------------------
@@ -221,21 +226,26 @@ main:
      
           mov     si, msgCRLF
           call    Print
-          mov     dx, WORD [di + 0x001A]
+          mov     dx, WORD [di + 0x001A] ;; byte 26 -> byte 27 : first 12 bits
+          ;; are the first cluster number (FAT12)
           mov     WORD [cluster], dx                  ; file's first cluster
           
      ; compute size of FAT and store in "cx"
      
           xor     ax, ax
           mov     al, BYTE [bpbNumberOfFATs]          ; number of FATs
+          ;; 2 FAT for FAT12
           mul     WORD [bpbSectorsPerFAT]             ; sectors used by FATs
-          mov     cx, ax
+          ;; 9 sectors per FAT
+          mov     cx, ax   ;; 2 x 9 = 18 sectors
 
      ; compute location of FAT and store in "ax"
 
           mov     ax, WORD [bpbReservedSectors]       ; adjust for bootsector
           
      ; read FAT into memory (7C00:0200)
+     ;; overwritten the playground memory of root directory
+     ;; both FATs are read
 
           mov     bx, 0x0200                          ; copy FAT above bootcode
           call    ReadSectors
@@ -258,9 +268,11 @@ main:
           mov     ax, WORD [cluster]                  ; cluster to read
           pop     bx                                  ; buffer to read into
           call    ClusterLBA                          ; convert cluster to LBA
+          ;; ax now has LBA of first cluster (its sector number)
           xor     cx, cx
           mov     cl, BYTE [bpbSectorsPerCluster]     ; sectors to read
           call    ReadSectors
+          ;; read to es:bx -> 0050:0000
           push    bx
           
      ; compute next cluster
@@ -290,6 +302,7 @@ main:
           mov     WORD [cluster], dx                  ; store new cluster
           cmp     dx, 0x0FF0                          ; test for end of file
           jb      LOAD_IMAGE
+          ;; jump if below is set. FF0 or above -> end of file
           
      DONE:
      
@@ -298,6 +311,10 @@ main:
           push    WORD 0x0050
           push    WORD 0x0000
           retf
+          ;; pop IP , which is 0000
+          ;; pop CS, which is 0050
+          ;; now effective goes to : 0050:0000
+          ;; which is where the STAGE2.SYS is loaded !
           
      FAILURE:
      
