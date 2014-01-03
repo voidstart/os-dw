@@ -43,6 +43,22 @@ main:
       mov si, Msg
       call  Print
  
+ ;; begin testing code
+ ;; ==================
+ xor ax, ax
+ mov ax, 0xB800
+ mov ds, ax
+
+;; b800:0000 is begin of color video memory
+;; 
+;; 41 appears to be background red
+;; 44 = hex of D
+;; this code displays left-top corner a red-grnd D
+ mov ax, 4144h
+ mov [0x0],  ax
+;; end testing code
+;; ==================
+
       cli   ; clear interrupts to prevent triple faults
       hlt   ; hault the system
  
