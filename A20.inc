@@ -36,10 +36,13 @@ EnableA20_KKbrd_Out:
         mov     al,0xAD
         out     0x64,al		; disable keyboard
         call    wait_input
+        ;; wait until "can be written"
 
         mov     al,0xD0
         out     0x64,al		; tell controller to read output port
+        ;; write the cmd for "read output", noted.
         call    wait_output
+        ;; wait until "can be read"
 
         in      al,0x60
         push    eax		; get output port data and store it
@@ -58,6 +61,7 @@ EnableA20_KKbrd_Out:
         out     0x64,al
 
         call    wait_input
+        ;; like "flush"
 	popa
         sti
         ret
