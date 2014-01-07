@@ -115,17 +115,23 @@ FindFile:
 	cld							                      ; clear direction flag
 
 .LOOP:
-	push    cx
-	mov     cx, 11					; eleven character name. Image name is in SI
-	mov	si, bx						; image name is in BX
- 	push    di
-     rep  cmpsb							; test for entry match
+	push    cx                            ; save cx, since it's gonna change
+	mov     cx, 11					              ; inner counter, for string cmp
+  ; eleven character name. Image name is in SI
+	mov	si, bx		; si is dynamic , bx is the fixed name. image name is in BX
+ 	push    di                ; di is dynamic (during cmpsb), save it
+  rep  cmpsb							  ; test for entry match
 	pop     di
-	je      .Found
+	je      .Found            ; file name matched
+
+  ; not matched, try next
 	pop     cx
+  ; di is begin of each entry
 	add     di, 32					; queue next directory entry
+  ; cx gonna decrement here
 	loop    .LOOP
 
+  ; cx exhausted
 .NotFound:
 	pop	bx						; restore registers and return
 	pop	dx
@@ -134,6 +140,8 @@ FindFile:
 	ret
 
 .Found:
+  ; copy cx to ax, which is the loop counter
+  ; note cx is counting down, index is inversed
 	pop	ax						; return value into AX contains entry of file
 	pop	bx						; restore registers and return
 	pop	dx
@@ -152,7 +160,7 @@ FindFile:
 LoadFile:
 
 	xor	ecx, ecx		; size of file in sectors
-	push	ecx
+	push	ecx ; keep track of current num of sectors read
 
 .FIND_FILE:
 
@@ -160,8 +168,7 @@ LoadFile:
 	push	bp
 	call	FindFile		; find our file. ES:SI contains our filename
 	cmp	ax, -1
-  ;; check error
-	jne	.LOAD_IMAGE_PRE
+	jne	.LOAD_IMAGE_PRE    ; jump if no error
 	pop	bp
 	pop	bx
 	pop	ecx
@@ -170,8 +177,8 @@ LoadFile:
 
 .LOAD_IMAGE_PRE:
 
-	sub	edi, ROOT_OFFSET
-	sub	eax, ROOT_OFFSET
+	sub	edi, ROOT_OFFSET ; distance from cur matching addr to begin addr of root dir
+	sub	eax, ROOT_OFFSET ; ? useless? 
 
 	; get starting cluster
 
@@ -179,6 +186,8 @@ LoadFile:
 	pop	es
 	mov	dx, WORD [es:di + 0x001A]; DI points to file entry in root directory table. Refrence the table...
 	mov	WORD [cluster], dx	; file's first cluster
+  ; bx has original bp, es has original bx. bx:bp was buffer to write to,
+  ; now es:bx
 	pop	bx			; get location to write to so we dont screw up the stack
 	pop	es
 	push    bx			; store location for later again
@@ -197,11 +206,11 @@ LoadFile:
 	mov     cl, BYTE [bpbSectorsPerCluster]
 	call	ReadSectors
 	pop	ecx
-	inc	ecx			; add one more sector to counter
+	inc	ecx			; add one more sector to counter (cur sectors read)
 	push	ecx
 	push	bx
 	push	es
-	mov	ax, FAT_SEG		;start reading from fat
+	mov	ax, FAT_SEG		;start reading from fat (already loaded from disk)
 	mov	es, ax
 	xor	bx, bx
 
