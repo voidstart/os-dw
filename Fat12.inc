@@ -15,6 +15,7 @@ bits	16
 %include "Floppy16.inc"					; the erm.. floppy driver
 
 %define ROOT_OFFSET 0x2e00
+; ROOT_OFFSET: absolute address of beginning of root dir. same as 2e0:0
 %define FAT_SEG 0x2c0
 %define ROOT_SEG 0x2e0
 
@@ -105,13 +106,13 @@ FindFile:
 	push	cx						; store registers
 	push	dx
 	push	bx
-	mov	bx, si						; copy filename for later
+	mov	bx, si					; copy filename for later
 
      ; browse root directory for binary image
 
 	mov     cx, WORD [bpbRootEntries]			; load loop counter
-	mov     di, ROOT_OFFSET						; locate first root entry at 1 MB mark
-	cld							; clear direction flag
+	mov     di, ROOT_OFFSET						    ; locate first root entry at 1 MB mark
+	cld							                      ; clear direction flag
 
 .LOOP:
 	push    cx
@@ -155,7 +156,7 @@ LoadFile:
 
 .FIND_FILE:
 
-	push	bx			; BX=>BP points to buffer to write to; store it for later
+	push	bx			    ; BX=>BP points to buffer to write to; store it for later
 	push	bp
 	call	FindFile		; find our file. ES:SI contains our filename
 	cmp	ax, -1
