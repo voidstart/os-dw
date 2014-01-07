@@ -20,13 +20,14 @@ bits	16
 
 ;*******************************************
 ; LoadRoot ()
-;	- Load Root Directory Table to 0x7e00
+;	- Load Root Directory Table to 0x7e00 (ROOT_SEG)
+; - Save begin sector of file data to [datasector]
 ;*******************************************
 
 LoadRoot:
 
 	pusha							; store registers
-	push	es
+	push	es          ; pusha does not save Segment registers
 
      ; compute size of root directory and store in "cx"
      
@@ -35,24 +36,27 @@ LoadRoot:
 	mov     ax, 32					; 32 byte directory entry
 	mul     WORD [bpbRootEntries]				; total size of directory
 	div     WORD [bpbBytesPerSector]			; sectors used by directory
-	xchg    ax, cx						; move into AX
+	xchg    ax, cx						; result of root dir size, copy into CX
 
      ; compute location of root directory and store in "ax"
      
 	mov     al, BYTE [bpbNumberOfFATs]			; number of FATs
-	mul     WORD [bpbSectorsPerFAT]				; sectors used by FATs
+	mul     WORD [bpbSectorsPerFAT]				  ; sectors used by FATs
 	add     ax, WORD [bpbReservedSectors]
-	mov     WORD [datasector], ax				; base of root directory
-	add     WORD [datasector], cx
+	mov     WORD [datasector], ax				    ; base of root directory
+	add     WORD [datasector], cx           ; add size of root entries
+    ; what's next will be data
+    ; prepared: ax - begin of root directory entries table in Linear Sector
+    ; prepared: cx - size of root directory entries table
 
-     ; read root directory into 0x7e00
+    ; read root directory into ROOT_SEG ( 0x7e00 )
  
- 	push	word ROOT_SEG
+ 	push	word ROOT_SEG                    ; copy to es needs push/pop
 	pop		es
-	mov     bx, 0								; copy root dir
-	call    ReadSectors							; read in directory table
+	mov     bx, 0								           ; es:ebx is now ROOT_SEG:0
+	call    ReadSectors							       ; read in directory table
 	pop		es
-	popa										; restore registers and return
+	popa									                 ; restore registers and return
 	ret
 
 ;*******************************************
@@ -155,6 +159,7 @@ LoadFile:
 	push	bp
 	call	FindFile		; find our file. ES:SI contains our filename
 	cmp	ax, -1
+  ;; check error
 	jne	.LOAD_IMAGE_PRE
 	pop	bp
 	pop	bx
