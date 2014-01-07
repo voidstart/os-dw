@@ -87,7 +87,7 @@ main:
         ;-------------------------------;
 
 	mov	ebx, 0			; BX:BP points to buffer to load to
-  mov	bp, IMAGE_RMODE_BASE
+    	mov	bp, IMAGE_RMODE_BASE
 	mov	si, ImageName		; our file to load
 	call	LoadFile		; load our file
 	mov	dword [ImageSize], ecx	; save size of kernel
